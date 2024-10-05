@@ -1,85 +1,104 @@
 #!/data/data/com.termux/files/usr/bin/bash
-echo '================ cantrol architecture and android version ==================='
-case $(uname -m) in
-    aarch64)   echo 'aarch64 is allow, continue' ;;
-    arm)  dpkg --print-architecture | grep -q "arm64" && \
-          echo ' aarch64 is allow, continue' || \
-          echo 'unfortunately arm is not allow, only suported is aarch64  it must exist' && exit 1  ;;
-    *) echo 'unfortunately not allow, only suported is aarch64 it must exist' && exit 1   ;;
+#edited by gpt chat
+
+# ================== Check architecture and Android version ==================
+echo '================ Checking architecture and Android version =================='
+ARCH=$(uname -m)
+case $ARCH in
+    aarch64)   
+        echo 'Architecture aarch64 is supported, proceeding.' 
+        ;;
+    arm)  
+        if dpkg --print-architecture | grep -q "arm64"; then
+            echo 'Architecture aarch64 is supported, proceeding.'
+        else
+            echo 'Unfortunately, arm architecture is not supported. Only aarch64 is supported.'
+            exit 1
+        fi
+        ;;
+    *)  
+        echo 'Unfortunately, this architecture is not supported. Only aarch64 is supported.'
+        exit 1
+        ;;
 esac
-s_version=$(termux-info | grep -A1 "Android version" | grep -Po "\\d+")
-version=$(($s_version+0))
-if (( $version < 9 )) then
-	echo 'unfortunately anroid must be 9 or above'
-	exit 1
+
+# ================== Check Android version ==================
+ANDROID_VERSION=$(termux-info | grep -A1 "Android version" | grep -Po "\\d+")
+if (( ANDROID_VERSION < 9 )); then
+    echo 'Unfortunately, Android version must be 9 or higher.'
+    exit 1
 fi
-full=1;sdk=0;
+
+# ================== NDK selection ==================
+FULL_NDK=1
 while true; do
-    read -p "Full ndk contain all headers and resources and light version contain only header which are nesessery for library fyne to build apk or arm. \n Do you wish to install full NDK? (y/n): " yn
+    read -p "Do you want to install the full version of NDK (includes all headers and resources) or the lightweight version (only necessary headers for Fyne to build)? (y/n): " yn
     case $yn in
-        [Yy]* ) full=1; break;;
-        [Nn]* ) full=0; break;;
-        * ) echo "Please answer y(yes) or n(no).";;
+        [Yy]* ) FULL_NDK=1; break;;
+        [Nn]* ) FULL_NDK=0; break;;
+        * ) echo "Please answer y (yes) or n (no).";;
     esac
 done
 
+# ================== SDK selection ==================
+INSTALL_SDK=0
 while true; do
-    read -p "Do you wish to install SDK? It is for re-compile java for beginer useless (y/n): " yn
+    read -p "Do you want to install the SDK? (For recompiling Java, usually unnecessary for beginners) (y/n): " yn
     case $yn in
-        [Yy]* ) sdk=1; break;;
-        [Nn]* ) sdk=0; break;;
-        * ) echo "Please answer yes or no.";;
+        [Yy]* ) INSTALL_SDK=1; break;;
+        [Nn]* ) INSTALL_SDK=0; break;;
+        * ) echo "Please answer y (yes) or n (no).";;
     esac
 done
 
+# ================== Installing dependencies ==================
 echo '================================================================'
-echo '                     install dependencies'
+echo '                     Installing dependencies'
 echo '================================================================'
-pkg update && pkg upgrade && pkg install aapt apksigner dx ecj openjdk-17 git wget
+pkg update && pkg upgrade -y && pkg install -y aapt apksigner dx ecj openjdk-17 git wget
 
-if [ $sdk == 1 ]; then
-  echo '================================================================'
-  echo '                     download sdk.zip'
-  echo '================================================================'
-  cd ~ && wget https://github.com/Lzhiyong/termux-ndk/releases/download/android-sdk/android-sdk-aarch64.zip
-  echo '================================================================'
-  echo '                               unzip sdk.zip'
-  echo '================================================================'
-  cd ~ && unzip -qq android-sdk-aarch64.zip
-  echo '================================================================'
-  echo '                              tidy sdk.zip'
-  echo '================================================================'
-  cd ~ && rm android-sdk-aarch64.zip
+# ================== SDK Installation ==================
+if [ $INSTALL_SDK -eq 1 ]; then
+    echo '================================================================'
+    echo '                     Downloading SDK'
+    echo '================================================================'
+    cd ~ && wget https://github.com/Lzhiyong/termux-ndk/releases/download/android-sdk/android-sdk-aarch64.zip
+
+    echo '================================================================'
+    echo '                     Unzipping SDK'
+    echo '================================================================'
+    cd ~ && unzip -qq android-sdk-aarch64.zip && rm android-sdk-aarch64.zip
 fi
+
+# ================== NDK Installation ==================
 echo '================================================================'
-echo '                     download ndk.zip'
+echo '                     Downloading NDK'
 echo '================================================================'
-if [ $full == 1 ]; then 
-  cd ~ && wget https://github.com/Lzhiyong/termux-ndk/releases/download/ndk-r23/android-ndk-r23c-aarch64.zip
+if [ $FULL_NDK -eq 1 ]; then
+    cd ~ && wget https://github.com/lzhiyong/termux-ndk/releases/download/android-ndk/android-ndk-r27b-aarch64.zip -o android-ndk-aarch64.zip
 else
-  cd ~ && wget https://github.com/MatejMagat305/termux-ndk/releases/download/release/android-ndk-r23c-aarch64.zip
+    cd ~ && wget https://github.com/MatejMagat305/termux-ndk/releases/download/release/android-ndk-r23c-aarch64.zip -o android-ndk-aarch64.zip
 fi
-echo '================================================================'
-echo '                               unzip ndk.zip'
-echo '================================================================'
-cd ~ && unzip -qq android-ndk-r23c-aarch64.zip
-echo '================================================================'
-echo '                               fix sh in ndk path'
-echo '================================================================'
-cd ~ && termux-fix-shebang /data/data/com.termux/files/home/android-ndk-r23c/toolchains/llvm/prebuilt/linux-aarch64/bin/*
-echo '================================================================'
-echo '                               tidy ndk.zip'
-echo '================================================================'
-cd ~ && rm android-ndk-r23c-aarch64.zip
-
 
 echo '================================================================'
-echo '                               set env variables'
+echo '                     Unzipping NDK'
 echo '================================================================'
-if [ $sdk == 1 ]; then 
-  echo 'export ANDROID_HOME=/data/data/com.termux/files/home/android-sdk/' >> ~/../usr/etc/profile
+cd ~ && unzip -qq android-ndk-aarch64.zip && rm android-ndk-aarch64.zip
+
+# ================== Fixing shebang in NDK path ==================
+echo '================================================================'
+echo '                     Fixing shebang in NDK tools'
+echo '================================================================'
+termux-fix-shebang ~/android-ndk/toolchains/llvm/prebuilt/linux-aarch64/bin/*
+
+# ================== Setting environment variables ==================
+echo '================================================================'
+echo '                     Setting environment variables'
+echo '================================================================'
+if [ $INSTALL_SDK -eq 1 ]; then 
+    echo 'export ANDROID_HOME=$HOME/android-sdk/' >> ~/.bashrc
 fi
-echo 'export ANDROID_NDK_HOME=/data/data/com.termux/files/home/android-ndk-r23c/' >> ~/../usr/etc/profile
-echo 'export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME' >> ~/../usr/etc/profile
+echo 'export ANDROID_NDK_HOME=$HOME/android-ndk-r27b/' >> ~/.bashrc
+echo 'export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME' >> ~/.bashrc
 
-echo 'put "source ~/../usr/etc/profile"'
+echo 'Run "source ~/.bashrc" to apply the changes.'
