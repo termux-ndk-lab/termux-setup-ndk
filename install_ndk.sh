@@ -82,26 +82,4 @@ fi
 echo 'export ANDROID_NDK_HOME=/data/data/com.termux/files/home/android-ndk-r23c/' >> ~/../usr/etc/profile
 echo 'export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME' >> ~/../usr/etc/profile
 
-
-echo '================================================================'
-echo '                               install golang'
-echo '================================================================'
-pkg install golang
-cd ~ && mkdir -p go/bin
-echo 'export PATH=$PATH:/data/data/com.termux/files/home/go/bin/' >> ~/../usr/etc/profile
-
-echo '================================================================'
-echo '                               install fyne'
-echo '================================================================'
-cd ~ && git clone https://github.com/fyne-io/fyne.git && cd fyne && cd cmd/fyne && go build && chmod 1777 fyne && mv fyne /data/data/com.termux/files/home/go/bin/ && cd ~ && rm -rf fyne
-
-echo '================================================================'
-echo '                                 complete'
-echo '================================================================'
-echo ''
-if [ $full == 1 ]; then 
-  echo 'you can put "fyne package -os android -icon some_icon_name -name some_name -release -appID some_package_name" in fyne project'
-else
-  echo 'you can put "fyne package -os android/arm64 -icon some_icon_name -name some_name -release -appID some_package_name" in fyne project'
-fi
 echo 'put "source ~/../usr/etc/profile"'
